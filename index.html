@@ -1,0 +1,681 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="たこ焼きレジ">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
+<meta name="theme-color" content="#1d1d1b">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icon-180.png">
+<title>たこ焼きレジ</title>
+<style>
+:root{--bg:#f4f4f0;--card:#fff;--ink:#1d1d1b;--sub:#6b6b66;--line:#e0e0da;--cash:#2f7d4f;--ticket:#c46f12;--paypay:#d6262f;--warn:#b3261e}
+*{box-sizing:border-box}
+html,body{overscroll-behavior:none}
+button{touch-action:manipulation;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+body{margin:0;padding-left:env(safe-area-inset-left);padding-right:env(safe-area-inset-right);padding-bottom:env(safe-area-inset-bottom);font-family:system-ui,-apple-system,"Hiragino Sans","Noto Sans JP","Yu Gothic UI",sans-serif;background:var(--bg);color:var(--ink);-webkit-tap-highlight-color:transparent}
+header{position:sticky;top:0;background:var(--ink);color:#fff;display:flex;flex-wrap:wrap;align-items:center;gap:6px;padding:8px 12px;z-index:5}
+header h1{font-size:16px;margin:0 auto 0 0}
+nav{display:flex;gap:4px}
+nav button{background:transparent;color:#bbb;border:0;padding:8px 12px;font-size:15px;border-radius:8px;cursor:pointer}
+nav button.on{background:#fff;color:var(--ink);font-weight:700}
+main{padding:12px;max-width:1100px;margin:0 auto}
+.view{display:none}.view.on{display:block}
+.reg{display:grid;grid-template-columns:1fr 360px;gap:12px;align-items:start}
+@media(max-width:760px){.reg{grid-template-columns:1fr}}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:8px}
+.pbtn{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px 10px;min-height:84px;text-align:left;font-size:15px;cursor:pointer;color:var(--ink)}
+.pbtn b{display:block;margin-bottom:6px;word-break:break-all}
+.pbtn span{color:var(--sub)}
+.pbtn:active{transform:scale(.97);background:#eee}
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px;margin-bottom:12px}
+.card h2{font-size:15px;margin:0 0 10px}
+.cart{position:sticky;top:60px}
+.line{display:flex;align-items:center;gap:6px;padding:6px 0;border-bottom:1px solid var(--line)}
+.line .n{flex:1;word-break:break-all}
+.qbtn{width:34px;height:34px;border-radius:8px;border:1px solid var(--line);background:#fafafa;font-size:18px;cursor:pointer}
+.total{display:flex;justify-content:space-between;align-items:baseline;margin:12px 0}
+.total strong{font-size:30px}
+.pay{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
+.pay button{border:0;border-radius:10px;padding:16px 4px;font-size:16px;font-weight:700;color:#fff;cursor:pointer}
+.pay button:disabled{opacity:.35;cursor:not-allowed}
+.b-cash{background:var(--cash)}.b-ticket{background:var(--ticket)}.b-paypay{background:var(--paypay)}
+.ghost{background:transparent;border:1px solid var(--line);border-radius:8px;padding:8px 12px;cursor:pointer;font-size:14px;color:var(--ink)}
+.danger{color:var(--warn);border-color:#e6b8b5}
+.muted{color:var(--sub);font-size:13px}
+.empty{color:var(--sub);text-align:center;padding:24px 0}
+input[type=text],input[type=number]{font-size:16px;padding:8px 10px;border:1px solid var(--line);border-radius:8px;width:100%;background:#fff;color:var(--ink)}
+.row{display:flex;gap:8px;align-items:center;margin-bottom:8px}
+.row label{min-width:120px;font-size:14px}
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,.45);display:none;align-items:center;justify-content:center;z-index:20;padding:12px}
+.overlay.on{display:flex}
+.modal{background:#fff;border-radius:14px;padding:16px;width:100%;max-width:420px;max-height:92vh;overflow:auto}
+.modal h3{margin:0 0 8px;font-size:18px}
+.big{font-size:32px;font-weight:700;margin:6px 0 12px}
+.quick{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin:8px 0}
+.quick button{padding:10px 0;border-radius:8px;border:1px solid var(--line);background:#fafafa;font-size:14px;cursor:pointer}
+.result{font-size:20px;font-weight:700;margin:12px 0;padding:10px;border-radius:8px;background:#f1f7f3}
+.result.ng{background:#fbeeed;color:var(--warn)}
+.confirm{width:100%;border:0;border-radius:10px;padding:14px;font-size:17px;font-weight:700;color:#fff;cursor:pointer;margin-top:6px}
+.confirm:disabled{opacity:.35}
+.tag{display:inline-block;font-size:12px;color:#fff;border-radius:6px;padding:2px 8px}
+.t-cash{background:var(--cash)}.t-ticket{background:var(--ticket)}.t-paypay{background:var(--paypay)}.t-mix{background:#555}
+.hist{border-bottom:1px solid var(--line);padding:10px 0}
+.hist.void{opacity:.45}.hist.void .amt{text-decoration:line-through}
+.hist .top{display:flex;gap:8px;align-items:center}
+.hist .amt{margin-left:auto;font-weight:700;font-size:17px}
+table{width:100%;border-collapse:collapse;font-size:15px}
+td,th{padding:8px 4px;border-bottom:1px solid var(--line);text-align:left}
+td.r,th.r{text-align:right}
+.sum3{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+@media(max-width:560px){.sum3{grid-template-columns:1fr}}
+.kpi{border-radius:12px;padding:12px;color:#fff}
+.kpi div{font-size:13px;opacity:.9}.kpi b{font-size:24px}
+.dbar{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
+.dbtn{flex:1 1 auto;min-width:88px;padding:12px 8px;border-radius:10px;border:2px solid var(--warn);background:#fff;color:var(--warn);font-size:15px;font-weight:700;cursor:pointer}
+.dbtn.on{background:var(--warn);color:#fff}
+.dbtn:disabled{opacity:.35;cursor:not-allowed}
+.dbtn.add{border-style:dashed;border-color:var(--line);color:var(--sub);font-weight:400}
+@media(min-width:761px){
+  .grid{grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:12px}
+  .pbtn{min-height:120px;font-size:19px;padding:18px 14px}
+  .pbtn span{font-size:17px}
+  .qbtn{width:44px;height:44px;font-size:22px}
+  .pay button{padding:22px 4px;font-size:19px}
+  .dbtn{padding:16px 8px;font-size:17px}
+  nav button{padding:10px 16px;font-size:17px}
+}
+.toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:var(--ink);color:#fff;padding:10px 18px;border-radius:20px;font-size:14px;display:none;z-index:30}
+</style>
+</head>
+<body>
+<header>
+  <h1>オフラインレジ</h1>
+  <nav>
+    <button data-v="reg" class="on">レジ</button>
+    <button data-v="hist">履歴</button>
+    <button data-v="sum">集計</button>
+    <button data-v="set">設定</button>
+  </nav>
+</header>
+
+<main>
+  <!-- レジ -->
+  <section id="v-reg" class="view on">
+    <div class="reg">
+      <div>
+        <div id="pgrid" class="grid"></div>
+        <p id="noprod" class="empty" style="display:none">商品がありません。「設定」から追加してください。</p>
+      </div>
+      <div class="card cart">
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <h2 style="margin:0">お会計 <span id="nextNo" class="muted"></span></h2>
+          <button class="ghost" id="clearCart">クリア</button>
+        </div>
+        <div id="cartLines"></div>
+        <div class="total" id="subRow" style="margin:10px 0 2px;display:none"><span class="muted">小計</span><span id="cartSub">¥0</span></div>
+        <div class="total" id="discRow" style="margin:2px 0;display:none;color:var(--warn)"><span>値引き</span><span id="cartDisc">−¥0</span></div>
+        <div class="muted" style="margin-top:10px">お会計から値引き（もう一度押すと解除）</div>
+        <div id="discBar" class="dbar"></div>
+        <div class="total"><span>合計</span><strong id="cartTotal">¥0</strong></div>
+        <div class="pay">
+          <button class="b-cash" data-pay="cash">現金</button>
+          <button class="b-ticket" data-pay="ticket">チケット</button>
+          <button class="b-paypay" data-pay="paypay">PayPay</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 履歴 -->
+  <section id="v-hist" class="view">
+    <div class="card"><h2>取引履歴（新しい順）</h2><div id="histList"></div></div>
+  </section>
+
+  <!-- 集計 -->
+  <section id="v-sum" class="view">
+    <div class="sum3" id="kpis"></div>
+    <div class="card" style="margin-top:12px">
+      <h2>売上合計</h2>
+      <table id="sumTable"></table>
+    </div>
+    <div class="card">
+      <h2>レジ締め（現金チェック）</h2>
+      <table id="drawer"></table>
+      <div class="row" style="margin-top:10px"><label>実際の現金</label><input type="number" id="actualCash" inputmode="numeric" placeholder="数えた金額を入力"></div>
+      <div id="diff" class="result" style="display:none"></div>
+    </div>
+    <div class="card">
+      <h2>商品別</h2>
+      <table id="itemTable"></table>
+    </div>
+  </section>
+
+  <!-- 設定 -->
+  <section id="v-set" class="view">
+    <div class="card">
+      <h2>商品</h2>
+      <div id="prodList"></div>
+      <div class="row" style="margin-top:10px">
+        <input type="text" id="newName" placeholder="商品名">
+        <input type="number" id="newPrice" placeholder="価格" inputmode="numeric" style="max-width:120px">
+        <button class="ghost" id="addProd">追加</button>
+      </div>
+    </div>
+    <div class="card">
+      <h2>値引きボタン</h2>
+      <div id="discList"></div>
+      <div class="row" style="margin-top:10px">
+        <input type="number" id="newDisc" placeholder="値引き額（円）" inputmode="numeric">
+        <button class="ghost" id="addDiscSet">追加</button>
+      </div>
+    </div>
+    <div class="card">
+      <h2>基本設定</h2>
+      <div class="row"><label>チケット1枚の額面</label><input type="number" id="ticketValue" inputmode="numeric"></div>
+      <div class="row"><label>釣銭準備金</label><input type="number" id="float" inputmode="numeric"></div>
+      <p class="muted">釣銭準備金は、開始時にレジに入れておいた現金です。レジ締めの計算に使います。</p>
+    </div>
+    <div class="card">
+      <h2>データ</h2>
+      <div style="display:flex;flex-wrap:wrap;gap:8px">
+        <button class="ghost" id="exportCsv">売上をCSVで保存</button>
+        <button class="ghost" id="backup">バックアップ保存</button>
+        <button class="ghost" id="restoreBtn">バックアップから復元</button>
+        <input type="file" id="restoreFile" accept=".json,application/json" style="display:none">
+        <button class="ghost danger" id="resetSales">売上データを全削除</button>
+      </div>
+      <p class="muted">データはこの端末のこのブラウザ内に保存されます。イベントの終わりにCSVとバックアップを保存しておくと安心です。</p>
+    </div>
+  </section>
+</main>
+
+<div class="overlay" id="overlay"><div class="modal" id="modal"></div></div>
+<div class="toast" id="toast"></div>
+
+<script>
+(function(){
+const KEY = 'offline-register-v1';
+const LABEL = {cash:'現金', ticket:'チケット', paypay:'PayPay'};
+const defaults = () => ({
+  products:[
+    {id:uid(), name:'たこ焼き 3個', price:300},
+    {id:uid(), name:'たこ焼き 6個', price:500},
+    {id:uid(), name:'トッピング', price:100}
+  ],
+  sales:[],
+  settings:{ticketValue:100, float:0, discounts:[100,200]}
+});
+
+function uid(){ return Date.now().toString(36) + Math.random().toString(36).slice(2,7); }
+function yen(n){ return '¥' + Math.round(n||0).toLocaleString('ja-JP'); }
+function esc(s){ return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function $(id){ return document.getElementById(id); }
+function num(v){ const n = parseInt(v,10); return isNaN(n) ? 0 : n; }
+
+let state;
+try { const raw = localStorage.getItem(KEY); state = raw ? JSON.parse(raw) : defaults(); } catch(e){ state = defaults(); }
+state.settings = Object.assign({ticketValue:100, float:0, discounts:[100,200]}, state.settings||{});
+state.products = state.products || []; state.sales = state.sales || [];
+// 会計No（通し番号）：古いデータにも順番に振る
+function fixNumbers(){
+  let max = 0;
+  state.sales.forEach(s => { if(s.no) max = Math.max(max, s.no); });
+  state.sales.forEach(s => { if(!s.no) s.no = ++max; });
+  state.nextNo = Math.max(state.nextNo||1, max+1);
+}
+fixNumbers();
+const fmtNo = n => 'No.' + String(n).padStart(4,'0');
+
+function save(){
+  try { localStorage.setItem(KEY, JSON.stringify(state)); }
+  catch(e){ alert('保存できませんでした。バックアップを取ってください。'); }
+}
+function toast(msg){
+  const t = $('toast'); t.textContent = msg; t.style.display = 'block';
+  clearTimeout(toast._t); toast._t = setTimeout(()=> t.style.display='none', 1800);
+}
+
+let cart = []; // {pid,name,price,listPrice,qty}
+let discount = 0; // 円
+const cartSubtotal = () => cart.reduce((s,l)=> s + l.price*l.qty, 0);
+const discountAmount = () => {
+  if(!discount || !cart.length) return 0;
+  const sub = cartSubtotal();
+  const d = discount;
+  return Math.min(sub, Math.max(0, d));
+};
+const cartTotal = () => cartSubtotal() - discountAmount();
+
+/* ---------- タブ ---------- */
+document.querySelectorAll('nav button').forEach(b => b.onclick = () => {
+  document.querySelectorAll('nav button').forEach(x=>x.classList.toggle('on', x===b));
+  document.querySelectorAll('.view').forEach(v=>v.classList.toggle('on', v.id==='v-'+b.dataset.v));
+  render();
+});
+
+/* ---------- レジ ---------- */
+function renderRegister(){
+  const g = $('pgrid');
+  g.innerHTML = state.products.map(p =>
+    `<button class="pbtn" data-id="${p.id}"><b>${esc(p.name)}</b><span>${yen(p.price)}</span></button>`).join('');
+  $('noprod').style.display = state.products.length ? 'none' : 'block';
+  g.querySelectorAll('.pbtn').forEach(b => b.onclick = () => addToCart(b.dataset.id));
+  renderCart();
+}
+function addToCart(pid){
+  const p = state.products.find(x=>x.id===pid); if(!p) return;
+  const l = cart.find(x=>x.pid===pid);
+  if(l) l.qty++; else cart.push({pid, name:p.name, price:p.price, listPrice:p.price, qty:1});
+  renderCart();
+}
+function renderCart(){
+  const box = $('cartLines');
+  if(!cart.length){ box.innerHTML = '<p class="empty">商品をタップして追加</p>'; }
+  else box.innerHTML = cart.map((l,i)=>`
+    <div class="line">
+      <div class="n">${esc(l.name)}<div class="muted">${l.price!==l.listPrice?`<s>${yen(l.listPrice)}</s> `:''}${yen(l.price)} × ${l.qty} = ${yen(l.price*l.qty)}</div>
+        <button class="ghost" style="padding:2px 8px;font-size:12px;margin-top:4px" data-edit="${i}">単価変更</button></div>
+      <button class="qbtn" data-i="${i}" data-d="-1">−</button>
+      <span style="min-width:22px;text-align:center">${l.qty}</span>
+      <button class="qbtn" data-i="${i}" data-d="1">＋</button>
+    </div>`).join('');
+  box.querySelectorAll('.qbtn').forEach(b => b.onclick = () => {
+    const l = cart[b.dataset.i]; l.qty += num(b.dataset.d);
+    if(l.qty<=0) cart.splice(b.dataset.i,1);
+    renderCart();
+  });
+  box.querySelectorAll('[data-edit]').forEach(b => b.onclick = () => openPriceEdit(num(b.dataset.edit)));
+  const da = discountAmount();
+  $('subRow').style.display = da ? 'flex' : 'none';
+  $('discRow').style.display = da ? 'flex' : 'none';
+  $('cartSub').textContent = yen(cartSubtotal());
+  $('cartDisc').textContent = '−' + yen(da);
+  renderDiscBar();
+  $('cartTotal').textContent = yen(cartTotal());
+  $('nextNo').textContent = fmtNo(state.nextNo);
+  document.querySelectorAll('[data-pay]').forEach(b => b.disabled = !cart.length);
+}
+$('clearCart').onclick = () => { cart = []; discount = 0; renderCart(); };
+
+/* ---------- 値下げ ---------- */
+function openPriceEdit(i){
+  const l = cart[i]; if(!l) return;
+  const m = $('modal');
+  m.innerHTML = `
+    <h3>単価変更：${esc(l.name)}</h3>
+    <div class="muted">定価 ${yen(l.listPrice)}</div>
+    <div class="row" style="margin-top:8px"><label>新しい単価</label><input type="number" id="np" inputmode="numeric" value="${l.price}"></div>
+    <div class="quick">
+      <button data-off="50">−¥50</button><button data-off="100">−¥100</button>
+      <button data-half="1">半額</button><button data-reset="1">定価に戻す</button>
+    </div>
+    <button class="confirm" style="background:var(--ink)" id="ok">変更する</button>
+    <button class="ghost" style="width:100%;margin-top:8px" id="cancel">戻る</button>`;
+  const np = $('np');
+  m.querySelectorAll('[data-off]').forEach(b => b.onclick = () => np.value = Math.max(0, l.listPrice - num(b.dataset.off)));
+  m.querySelector('[data-half]').onclick = () => np.value = Math.floor(l.listPrice/2);
+  m.querySelector('[data-reset]').onclick = () => np.value = l.listPrice;
+  $('ok').onclick = () => { l.price = Math.max(0, num(np.value)); closeModal(); renderCart(); };
+  $('cancel').onclick = closeModal;
+  $('overlay').classList.add('on');
+}
+function renderDiscBar(){
+  const bar = $('discBar');
+  const list = state.settings.discounts.slice().sort((a,b)=>a-b);
+  bar.innerHTML = list.map(v =>
+    `<button class="dbtn${discount===v?' on':''}" data-dv="${v}">${v}円引き</button>`).join('') +
+    `<button class="dbtn add" id="addDisc">＋値引き追加</button>`;
+  bar.querySelectorAll('[data-dv]').forEach(b => {
+    b.disabled = !cart.length;
+    b.onclick = () => { const v = num(b.dataset.dv); discount = (discount===v) ? 0 : v; renderCart(); };
+  });
+  $('addDisc').onclick = openAddDiscount;
+}
+function openAddDiscount(){
+  const m = $('modal');
+  m.innerHTML = `
+    <h3>値引きボタンを追加</h3>
+    <div class="row" style="margin-top:8px"><label>値引き額（円）</label><input type="number" id="dy" inputmode="numeric" placeholder="例：50"></div>
+    <p class="muted">追加したボタンはずっと画面に残ります。消すときは「設定」から。</p>
+    <button class="confirm" style="background:var(--ink)" id="ok">追加する</button>
+    <button class="ghost" style="width:100%;margin-top:8px" id="cancel">戻る</button>`;
+  $('ok').onclick = () => {
+    const v = num($('dy').value);
+    if(v<=0){ toast('金額を入れてください'); return; }
+    if(!state.settings.discounts.includes(v)) state.settings.discounts.push(v);
+    save();
+    if(cart.length) discount = v;
+    closeModal(); renderCart(); toast(v+'円引きを追加しました');
+  };
+  $('cancel').onclick = closeModal;
+  $('overlay').classList.add('on');
+  setTimeout(()=>{ const f = $('dy'); if(f) f.focus(); }, 50);
+}
+document.querySelectorAll('[data-pay]').forEach(b => b.onclick = () => openPay(b.dataset.pay));
+
+/* ---------- 支払い ---------- */
+function closeModal(){ $('overlay').classList.remove('on'); }
+$('overlay').onclick = e => { if(e.target.id==='overlay') closeModal(); };
+
+function openPay(method){
+  const total = cartTotal(); if(!total && !cart.length) return;
+  const m = $('modal');
+  if(method==='cash'){
+    m.innerHTML = `
+      <h3>現金</h3><div class="muted">お会計</div><div class="big">${yen(total)}</div>
+      <div class="row"><label>お預かり</label><input type="number" id="recv" inputmode="numeric" placeholder="0"></div>
+      <div class="quick">
+        <button data-q="exact">ちょうど</button><button data-q="1000">¥1,000</button>
+        <button data-q="5000">¥5,000</button><button data-q="10000">¥10,000</button>
+      </div>
+      <div id="chg" class="result ng">お預かり金額を入力</div>
+      <button class="confirm b-cash" id="ok" disabled>会計を確定</button>
+      <button class="ghost" style="width:100%;margin-top:8px" id="cancel">戻る</button>`;
+    const recv = $('recv');
+    const upd = () => {
+      const r = num(recv.value), c = r - total;
+      const el = $('chg');
+      if(!recv.value){ el.textContent='お預かり金額を入力'; el.className='result ng'; $('ok').disabled = true; return; }
+      if(c<0){ el.textContent = '不足 ' + yen(-c); el.className='result ng'; $('ok').disabled = true; }
+      else { el.textContent = 'お釣り ' + yen(c); el.className='result'; $('ok').disabled = false; }
+    };
+    recv.oninput = upd;
+    m.querySelectorAll('[data-q]').forEach(b => b.onclick = () => { recv.value = b.dataset.q==='exact' ? total : b.dataset.q; upd(); });
+    $('ok').onclick = () => { const r = num(recv.value); complete('cash', {cash:total, ticket:0, paypay:0}, {received:r, change:r-total}); };
+  }
+  else if(method==='ticket'){
+    const tv = state.settings.ticketValue || 100;
+    const need = Math.ceil(total / tv);
+    m.innerHTML = `
+      <h3>チケット</h3><div class="muted">お会計（1枚 ${yen(tv)}）</div><div class="big">${yen(total)}</div>
+      <div class="row"><label>受け取った枚数</label>
+        <button class="qbtn" id="tm">−</button>
+        <input type="number" id="tc" inputmode="numeric" value="${need}" style="text-align:center">
+        <button class="qbtn" id="tp">＋</button></div>
+      <div id="tres" class="result"></div>
+      <div id="shortBox" style="display:none">
+        <div class="row"><label>不足分の現金</label><input type="number" id="srecv" inputmode="numeric" placeholder="お預かり"></div>
+        <div id="schg" class="muted"></div>
+      </div>
+      <button class="confirm b-ticket" id="ok">会計を確定</button>
+      <button class="ghost" style="width:100%;margin-top:8px" id="cancel">戻る</button>`;
+    const tc = $('tc');
+    const upd = () => {
+      const cnt = Math.max(0, num(tc.value)), val = cnt*tv, el = $('tres');
+      const short = total - val;
+      $('shortBox').style.display = short>0 ? 'block' : 'none';
+      if(short>0){
+        el.textContent = `チケット ${yen(val)}／不足 ${yen(short)} は現金で`; el.className='result ng';
+        const r = num($('srecv').value);
+        if($('srecv').value && r>=short){ $('schg').textContent = 'お釣り ' + yen(r-short); $('ok').disabled=false; }
+        else { $('schg').textContent = '不足分のお預かり金額を入力'; $('ok').disabled = true; }
+      } else if(short<0){
+        el.textContent = `チケット ${yen(val)}（${yen(-short)} 超過・お釣りなし）`; el.className='result'; $('ok').disabled = cnt===0 && total>0;
+      } else { el.textContent = `ちょうど（${cnt}枚）`; el.className='result'; $('ok').disabled = false; }
+    };
+    tc.oninput = upd; $('srecv').oninput = upd;
+    $('tm').onclick = () => { tc.value = Math.max(0, num(tc.value)-1); upd(); };
+    $('tp').onclick = () => { tc.value = num(tc.value)+1; upd(); };
+    upd();
+    $('ok').onclick = () => {
+      const cnt = Math.max(0, num(tc.value)), val = cnt*tv, short = Math.max(0, total - val);
+      const ticketPart = total - short;
+      const r = short>0 ? num($('srecv').value) : 0;
+      complete(short>0 ? 'mix' : 'ticket', {cash:short, ticket:ticketPart, paypay:0},
+        {tickets:cnt, ticketFace:val, received: short>0 ? r : 0, change: short>0 ? r-short : 0});
+    };
+  }
+  else {
+    m.innerHTML = `
+      <h3>PayPay</h3><div class="muted">お客さまに提示する金額</div><div class="big">${yen(total)}</div>
+      <p class="muted">お客さまの画面で「支払い完了」と金額・店名を確認してから確定してください。</p>
+      <button class="confirm b-paypay" id="ok">支払い完了を確認した</button>
+      <button class="ghost" style="width:100%;margin-top:8px" id="cancel">戻る</button>`;
+    $('ok').onclick = () => complete('paypay', {cash:0, ticket:0, paypay:total}, {});
+  }
+  $('cancel').onclick = closeModal;
+  $('overlay').classList.add('on');
+  const f = m.querySelector('input'); if(f) setTimeout(()=>f.focus(), 50);
+}
+
+function complete(method, pay, extra){
+  const sale = Object.assign({
+    id: uid(), no: state.nextNo++, ts: new Date().toISOString(),
+    items: cart.map(l=>({name:l.name, price:l.price, listPrice:l.listPrice, qty:l.qty})),
+    subtotal: cartSubtotal(), discount: discountAmount(),
+    total: cartTotal(), method, pay, voided:false
+  }, extra);
+  state.sales.push(sale); save();
+  cart = []; discount = 0; closeModal(); renderCart();
+  toast(`${fmtNo(sale.no)} 確定` + (extra && extra.change>0 ? `（お釣り ${yen(extra.change)}）` : ''));
+}
+
+/* ---------- 履歴 ---------- */
+function fmtTime(iso){ const d = new Date(iso); return d.toLocaleDateString('ja-JP',{month:'numeric',day:'numeric'}) + ' ' + d.toLocaleTimeString('ja-JP',{hour:'2-digit',minute:'2-digit'}); }
+function methodTag(s){
+  const cls = s.method==='mix' ? 't-mix' : 't-'+s.method;
+  const name = s.method==='mix' ? 'チケット＋現金' : LABEL[s.method];
+  return `<span class="tag ${cls}">${name}</span>`;
+}
+// 取消：①内容を確認 → ②会計Noの数字を入力 の2段階
+function openVoid(id){
+  const s = state.sales.find(x=>x.id===id); if(!s) return;
+  const m = $('modal');
+  const step1 = () => {
+    m.innerHTML = `
+      <h3>取消の確認（1/2）</h3>
+      <div class="big" style="font-size:24px">${fmtNo(s.no)}　${yen(s.total)}</div>
+      <div class="muted">${fmtTime(s.ts)}　${methodTag(s)}</div>
+      <p>${s.items.map(i=>esc(i.name)+'×'+i.qty).join('、')}${s.discount?`／値引き−${yen(s.discount)}`:''}</p>
+      <p class="muted">この取引で合っていますか？取り消すと集計から外れます。</p>
+      <button class="confirm" style="background:var(--warn)" id="next">次へ</button>
+      <button class="ghost" style="width:100%;margin-top:8px" id="cancel">やめる</button>`;
+    $('next').onclick = step2;
+    $('cancel').onclick = closeModal;
+  };
+  const step2 = () => {
+    m.innerHTML = `
+      <h3>取消の確認（2/2）</h3>
+      <p>確認のため、会計Noの数字 <b>${s.no}</b> を入力してください。</p>
+      <div class="row"><input type="number" id="vno" inputmode="numeric" placeholder="会計Noの数字"></div>
+      <button class="confirm" style="background:var(--warn)" id="ok" disabled>取り消す</button>
+      <button class="ghost" style="width:100%;margin-top:8px" id="cancel">やめる</button>`;
+    const vno = $('vno');
+    vno.oninput = () => { $('ok').disabled = num(vno.value) !== s.no; };
+    $('ok').onclick = () => {
+      if(num(vno.value) !== s.no) return;
+      s.voided = true; s.voidedAt = new Date().toISOString(); save();
+      closeModal(); renderHistory(); toast(fmtNo(s.no) + ' を取り消しました');
+    };
+    $('cancel').onclick = closeModal;
+    setTimeout(()=>{ const f = $('vno'); if(f) f.focus(); }, 50);
+  };
+  step1();
+  $('overlay').classList.add('on');
+}
+function renderHistory(){
+  const list = $('histList');
+  if(!state.sales.length){ list.innerHTML = '<p class="empty">まだ取引がありません</p>'; return; }
+  list.innerHTML = state.sales.slice().reverse().map(s => `
+    <div class="hist ${s.voided?'void':''}">
+      <div class="top"><b>${fmtNo(s.no)}</b><span class="muted">${fmtTime(s.ts)}</span>${methodTag(s)}${s.voided?'<span class="tag" style="background:#999">取消済</span>':''}<span class="amt">${yen(s.total)}</span></div>
+      <div class="muted" style="margin-top:4px">${s.items.map(i=>esc(i.name)+(i.listPrice!=null&&i.price!==i.listPrice?`(${yen(i.price)})`:'')+'×'+i.qty).join('、')}${s.discount?`／値引き−${yen(s.discount)}`:''}${s.tickets!=null?`／チケット${s.tickets}枚`:''}</div>
+      <div style="margin-top:6px">${s.voided
+        ? `<button class="ghost" data-undo="${s.id}">取消を戻す</button>`
+        : `<button class="ghost danger" data-void="${s.id}">取消</button>`}</div>
+    </div>`).join('');
+  list.querySelectorAll('[data-void]').forEach(b => b.onclick = () => openVoid(b.dataset.void));
+  list.querySelectorAll('[data-undo]').forEach(b => b.onclick = () => {
+    state.sales.find(s=>s.id===b.dataset.undo).voided = false; save(); renderHistory();
+  });
+}
+
+/* ---------- 集計 ---------- */
+function renderSummary(){
+  const live = state.sales.filter(s=>!s.voided);
+  const t = {cash:0, ticket:0, paypay:0}, cnt = {cash:0, ticket:0, paypay:0};
+  let tickets = 0, ticketFace = 0, discTotal = 0, lineDisc = 0;
+  live.forEach(s => {
+    discTotal += s.discount||0;
+    s.items.forEach(i => { if(i.listPrice!=null) lineDisc += (i.listPrice - i.price) * i.qty; });
+    ['cash','ticket','paypay'].forEach(k => { t[k] += (s.pay&&s.pay[k])||0; if((s.pay&&s.pay[k])>0) cnt[k]++; });
+    if(s.tickets) { tickets += s.tickets; ticketFace += s.ticketFace||0; }
+  });
+  const all = t.cash + t.ticket + t.paypay;
+  $('kpis').innerHTML = ['cash','ticket','paypay'].map(k =>
+    `<div class="kpi b-${k}"><div>${LABEL[k]}（${cnt[k]}件）</div><b>${yen(t[k])}</b></div>`).join('');
+  $('sumTable').innerHTML = `
+    <tr><td>現金</td><td class="r">${yen(t.cash)}</td></tr>
+    <tr><td>チケット</td><td class="r">${yen(t.ticket)}</td></tr>
+    <tr><td>PayPay</td><td class="r">${yen(t.paypay)}</td></tr>
+    <tr><th>合計（${live.length}件）</th><th class="r">${yen(all)}</th></tr>
+    <tr><td class="muted">値下げ（単価変更）</td><td class="r muted">−${yen(lineDisc)}</td></tr>
+    <tr><td class="muted">値引き（お会計から）</td><td class="r muted">−${yen(discTotal)}</td></tr>
+    <tr><td class="muted">回収チケット</td><td class="r muted">${tickets}枚（額面 ${yen(ticketFace)}）</td></tr>
+    <tr><td class="muted">取消</td><td class="r muted">${state.sales.length - live.length}件</td></tr>`;
+  const expected = (state.settings.float||0) + t.cash;
+  $('drawer').innerHTML = `
+    <tr><td>釣銭準備金</td><td class="r">${yen(state.settings.float)}</td></tr>
+    <tr><td>現金売上</td><td class="r">${yen(t.cash)}</td></tr>
+    <tr><th>レジにあるはずの現金</th><th class="r">${yen(expected)}</th></tr>`;
+  const ac = $('actualCash');
+  const showDiff = () => {
+    const d = $('diff');
+    if(ac.value===''){ d.style.display='none'; return; }
+    const diff = num(ac.value) - expected;
+    d.style.display = 'block';
+    d.className = 'result' + (diff===0 ? '' : ' ng');
+    d.textContent = diff===0 ? '過不足なし' : (diff>0 ? '過剰 ' : '不足 ') + yen(Math.abs(diff));
+  };
+  ac.oninput = showDiff; showDiff();
+
+  const items = {};
+  live.forEach(s => s.items.forEach(i => {
+    const k = i.name + '\u0000' + i.price;
+    items[k] = items[k] || {name:i.name, price:i.price, qty:0};
+    items[k].qty += i.qty;
+  }));
+  const rows = Object.values(items).sort((a,b)=> b.qty*b.price - a.qty*a.price);
+  $('itemTable').innerHTML = rows.length
+    ? '<tr><th>商品</th><th class="r">数量</th><th class="r">金額</th></tr>' +
+      rows.map(r=>`<tr><td>${esc(r.name)} <span class="muted">${yen(r.price)}</span></td><td class="r">${r.qty}</td><td class="r">${yen(r.qty*r.price)}</td></tr>`).join('') +
+      (discTotal ? `<tr><td class="muted">お会計からの値引き</td><td></td><td class="r muted">−${yen(discTotal)}</td></tr>` : '')
+    : '<tr><td class="empty">データなし</td></tr>';
+}
+
+/* ---------- 設定 ---------- */
+function renderSettings(){
+  const box = $('prodList');
+  box.innerHTML = state.products.length ? state.products.map(p => `
+    <div class="row">
+      <input type="text" value="${esc(p.name)}" data-name="${p.id}">
+      <input type="number" value="${p.price}" data-price="${p.id}" inputmode="numeric" style="max-width:120px">
+      <button class="ghost danger" data-del="${p.id}">削除</button>
+    </div>`).join('') : '<p class="muted">商品がありません</p>';
+  box.querySelectorAll('[data-name]').forEach(i => i.onchange = () => { const p = state.products.find(x=>x.id===i.dataset.name); p.name = i.value.trim() || p.name; save(); });
+  box.querySelectorAll('[data-price]').forEach(i => i.onchange = () => { state.products.find(x=>x.id===i.dataset.price).price = Math.max(0,num(i.value)); save(); });
+  box.querySelectorAll('[data-del]').forEach(b => b.onclick = () => {
+    if(!confirm('この商品を削除しますか？（過去の売上は残ります）')) return;
+    state.products = state.products.filter(x=>x.id!==b.dataset.del); save(); renderSettings();
+  });
+  const dl = $('discList');
+  const ds = state.settings.discounts.slice().sort((a,b)=>a-b);
+  dl.innerHTML = ds.length ? ds.map(v=>`<div class="row"><span style="flex:1">${v}円引き</span><button class="ghost danger" data-ddel="${v}">削除</button></div>`).join('') : '<p class="muted">値引きボタンがありません</p>';
+  dl.querySelectorAll('[data-ddel]').forEach(b => b.onclick = () => {
+    const v = num(b.dataset.ddel);
+    if(!confirm(v+'円引きボタンを削除しますか？')) return;
+    state.settings.discounts = state.settings.discounts.filter(x=>x!==v);
+    if(discount===v) discount = 0;
+    save(); renderSettings();
+  });
+  $('ticketValue').value = state.settings.ticketValue;
+  $('float').value = state.settings.float;
+}
+$('addProd').onclick = () => {
+  const name = $('newName').value.trim(), price = num($('newPrice').value);
+  if(!name){ toast('商品名を入れてください'); return; }
+  state.products.push({id:uid(), name, price:Math.max(0,price)}); save();
+  $('newName').value=''; $('newPrice').value=''; renderSettings(); toast('追加しました');
+};
+$('addDiscSet').onclick = () => {
+  const v = num($('newDisc').value);
+  if(v<=0){ toast('金額を入れてください'); return; }
+  if(!state.settings.discounts.includes(v)) state.settings.discounts.push(v);
+  save(); $('newDisc').value=''; renderSettings(); toast('追加しました');
+};
+$('ticketValue').onchange = e => { state.settings.ticketValue = Math.max(1, num(e.target.value)); save(); };
+$('float').onchange = e => { state.settings.float = Math.max(0, num(e.target.value)); save(); };
+
+async function download(name, text, type){
+  const blob = new Blob([text], {type});
+  // iPad/iPhone：共有シートから「ファイルに保存」できるようにする
+  try {
+    const file = new File([blob], name, {type});
+    if(navigator.canShare && navigator.canShare({files:[file]})){
+      await navigator.share({files:[file], title:name});
+      return;
+    }
+  } catch(e){ if(e && e.name==='AbortError') return; }
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = name;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(()=>URL.revokeObjectURL(a.href), 1000);
+}
+function stamp(){ const d = new Date(), p = n=>String(n).padStart(2,'0'); return `${d.getFullYear()}${p(d.getMonth()+1)}${p(d.getDate())}_${p(d.getHours())}${p(d.getMinutes())}`; }
+const csvCell = v => { const s = String(v==null?'':v); return /[",\n]/.test(s) ? '"' + s.replace(/"/g,'""') + '"' : s; };
+
+$('exportCsv').onclick = () => {
+  const head = ['会計No','日時','取引ID','商品','定価','単価','数量','小計','お会計値引き','取引合計','支払方法','現金','チケット','PayPay','チケット枚数','取消'];
+  const rows = [head];
+  state.sales.forEach(s => s.items.forEach((i,idx) => rows.push([
+    fmtNo(s.no), new Date(s.ts).toLocaleString('ja-JP'), s.id, i.name, i.listPrice!=null ? i.listPrice : i.price, i.price, i.qty, i.price*i.qty,
+    idx===0 ? (s.discount||0) : '', idx===0 ? s.total : '', s.method==='mix' ? 'チケット＋現金' : LABEL[s.method],
+    idx===0 ? s.pay.cash : '', idx===0 ? s.pay.ticket : '', idx===0 ? s.pay.paypay : '',
+    idx===0 && s.tickets!=null ? s.tickets : '', s.voided ? '取消' : ''
+  ])));
+  download(`売上_${stamp()}.csv`, '\ufeff' + rows.map(r=>r.map(csvCell).join(',')).join('\r\n'), 'text/csv');
+};
+$('backup').onclick = () => download(`レジバックアップ_${stamp()}.json`, JSON.stringify(state,null,1), 'application/json');
+$('restoreBtn').onclick = () => $('restoreFile').click();
+$('restoreFile').onchange = e => {
+  const f = e.target.files[0]; if(!f) return;
+  const r = new FileReader();
+  r.onload = () => {
+    try {
+      const d = JSON.parse(r.result);
+      if(!Array.isArray(d.products) || !Array.isArray(d.sales)) throw 0;
+      if(!confirm('今のデータを上書きして復元しますか？')) return;
+      state = d; state.settings = Object.assign({ticketValue:100,float:0,discounts:[100,200]}, d.settings||{}); fixNumbers();
+      save(); render(); toast('復元しました');
+    } catch(err){ alert('バックアップファイルを読み込めませんでした'); }
+  };
+  r.readAsText(f); e.target.value='';
+};
+$('resetSales').onclick = () => {
+  if(!confirm('売上データを全部削除します。先にCSVとバックアップを保存しましたか？')) return;
+  if(!confirm('本当に削除しますか？元に戻せません。')) return;
+  state.sales = []; state.nextNo = 1; save(); render(); toast('削除しました（会計Noは1から）');
+};
+
+function render(){
+  const on = document.querySelector('.view.on').id;
+  if(on==='v-reg') renderRegister();
+  if(on==='v-hist') renderHistory();
+  if(on==='v-sum') renderSummary();
+  if(on==='v-set') renderSettings();
+}
+render();
+
+// オフライン用（Webサーバーから開いたときだけ有効）
+if('serviceWorker' in navigator && location.protocol.startsWith('http')){
+  navigator.serviceWorker.register('sw.js').catch(()=>{});
+}
+// ずっと保存してもらうようブラウザに依頼
+try { if(navigator.storage && navigator.storage.persist) navigator.storage.persist(); } catch(e){}
+})();
+</script>
+</body>
+</html>
